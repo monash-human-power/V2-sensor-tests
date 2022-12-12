@@ -41,7 +41,7 @@ Check the following:
 
 ## Wheel RPM Logging
 Logs reed switch events to the serial port.
-- Baud rate `115200`.
+- Baud rate `115200`. The led on pin 13 will flash fast until a serial terminal is opened.
 - Press send `'r'` to the teensy to reset it.
 - Set `SEPARATOR` to `" "` for space separated values or to `","` for comma separated values (csv).
 - See the notion page discussing this [here](https://www.notion.so/monashhumanpower/Converting-the-V2-DAS-for-wheel-speed-bf6dd023d1bb43e9b83206c37f624c6d).

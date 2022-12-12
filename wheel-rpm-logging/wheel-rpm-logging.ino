@@ -14,21 +14,29 @@
 #define BAUD_RATE 115200
 #define RPM_CONVERSION_FACTOR 60*1000*1000 // 60 seconds in a minute, 1000 ms in a s, 1000 us in a ms
 volatile unsigned int rotationFlag = false;
-volatile uint32_t curTime;
-volatile uint32_t prevTime;
+volatile uint32_t curTime = 0;
+volatile uint32_t prevTime = 0;
 volatile unsigned long rotations = 0;
 
 void setup() {
-  // Serial
-  Serial.begin(BAUD_RATE);
-  while(!Serial) {}
-  // Serial.println(F("MHP Wheel speed logging. Compiled" __TIME__ "," __DATE__));
-  Serial.println(F("Time" SEPARATOR "Rotation_Number" SEPARATOR "Rotation_Time" SEPARATOR "RPM"));
-
   // Hardware
   pinMode(REED_SWITCH, INPUT_PULLUP);
   pinMode(LED_EXTERNAL, OUTPUT);
   digitalWrite(LED_EXTERNAL, HIGH); // Turn the led on until first rotation to show readiness
+
+  // Serial
+  Serial.begin(BAUD_RATE);
+  while(!Serial) {
+    // Let the user know the computer is not connected correctly
+    digitalWrite(LED_EXTERNAL, LOW);
+    delay(100);
+    digitalWrite(LED_EXTERNAL, HIGH);
+    delay(100);
+  }
+  // Serial.println(F("MHP Wheel speed logging. Compiled" __TIME__ "," __DATE__));
+  Serial.println(F("Time" SEPARATOR "Rotation_Number" SEPARATOR "Rotation_Time" SEPARATOR "RPM"));
+
+  // Enable the switch
   attachInterrupt(REED_SWITCH, reedInterrupt, FALLING);
 }
 
@@ -66,15 +74,13 @@ void loop() {
  */
 void reedInterrupt() {
   uint32_t now = micros();
-  uint32_t rotationTime = now - curTime;
-  if(rotationTime >= MIN_TIME) {
+  if(now - curTime >= MIN_TIME) {
+    // Switch closed and no event interrupts for the last little while
     // Assume this is a genuine wheel rotation and not switch bounce.
     digitalWrite(LED_EXTERNAL, rotations & 0x1); // Toggle the led (lsb of rotations toggles each time).
     rotations++;
     prevTime = curTime;
     curTime = now;
     rotationFlag = true;
-    // digitalWrite(LED_EXTERNAL, LOW);
   }
 }
-
