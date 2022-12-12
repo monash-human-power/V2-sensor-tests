@@ -14,8 +14,9 @@
 #define BAUD_RATE 115200
 #define RPM_CONVERSION_FACTOR 60*1000*1000 // 60 seconds in a minute, 1000 ms in a s, 1000 us in a ms
 volatile unsigned int rotationFlag = false;
-volatile uint32_t curTime;
-volatile uint32_t prevTime;
+volatile uint32_t curTime = 0;
+volatile uint32_t prevTime = 0;
+volatile uint32_t lockoutTime = 0; // For debouncing
 volatile unsigned long rotations = 0;
 
 void setup() {
@@ -23,7 +24,7 @@ void setup() {
   pinMode(REED_SWITCH, INPUT_PULLUP);
   pinMode(LED_EXTERNAL, OUTPUT);
   digitalWrite(LED_EXTERNAL, HIGH); // Turn the led on until first rotation to show readiness
-  attachInterrupt(REED_SWITCH, reedInterrupt, FALLING);
+  attachInterrupt(REED_SWITCH, reedInterrupt, CHANGE);
 
   // Serial
   Serial.begin(BAUD_RATE);
@@ -72,15 +73,16 @@ void loop() {
  */
 void reedInterrupt() {
   uint32_t now = micros();
-  uint32_t rotationTime = now - curTime;
-  if(rotationTime >= MIN_TIME) {
+  if(digitalReadFast(REED_SWITCH) && lockoutTime >= MIN_TIME) {
+    // Switch opened and no event interrupts for the last little while
     // Assume this is a genuine wheel rotation and not switch bounce.
     digitalWrite(LED_EXTERNAL, rotations & 0x1); // Toggle the led (lsb of rotations toggles each time).
     rotations++;
     prevTime = curTime;
     curTime = now;
     rotationFlag = true;
-    // digitalWrite(LED_EXTERNAL, LOW);
   }
+  // Lockout for switch opened or switch closed (helps with debouncing at slow speeds)
+  lockoutTime = now;
 }
 
