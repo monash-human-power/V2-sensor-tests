@@ -19,17 +19,23 @@ volatile uint32_t prevTime;
 volatile unsigned long rotations = 0;
 
 void setup() {
-  // Serial
-  Serial.begin(BAUD_RATE);
-  while(!Serial) {}
-  // Serial.println(F("MHP Wheel speed logging. Compiled" __TIME__ "," __DATE__));
-  Serial.println(F("Time" SEPARATOR "Rotation_Number" SEPARATOR "Rotation_Time" SEPARATOR "RPM"));
-
   // Hardware
   pinMode(REED_SWITCH, INPUT_PULLUP);
   pinMode(LED_EXTERNAL, OUTPUT);
   digitalWrite(LED_EXTERNAL, HIGH); // Turn the led on until first rotation to show readiness
   attachInterrupt(REED_SWITCH, reedInterrupt, FALLING);
+
+  // Serial
+  Serial.begin(BAUD_RATE);
+  while(!Serial) {
+    // Let the user know the computer is not connected correctly
+    digitalWrite(LED_EXTERNAL, LOW);
+    delay(100);
+    digitalWrite(LED_EXTERNAL, HIGH);
+    delay(100);
+  }
+  // Serial.println(F("MHP Wheel speed logging. Compiled" __TIME__ "," __DATE__));
+  Serial.println(F("Time" SEPARATOR "Rotation_Number" SEPARATOR "Rotation_Time" SEPARATOR "RPM"));
 }
 
 void loop() {
