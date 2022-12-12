@@ -16,7 +16,6 @@
 volatile unsigned int rotationFlag = false;
 volatile uint32_t curTime = 0;
 volatile uint32_t prevTime = 0;
-volatile uint32_t lockoutTime = 0; // For debouncing
 volatile unsigned long rotations = 0;
 
 void setup() {
@@ -24,7 +23,6 @@ void setup() {
   pinMode(REED_SWITCH, INPUT_PULLUP);
   pinMode(LED_EXTERNAL, OUTPUT);
   digitalWrite(LED_EXTERNAL, HIGH); // Turn the led on until first rotation to show readiness
-  attachInterrupt(REED_SWITCH, reedInterrupt, CHANGE);
 
   // Serial
   Serial.begin(BAUD_RATE);
@@ -37,6 +35,9 @@ void setup() {
   }
   // Serial.println(F("MHP Wheel speed logging. Compiled" __TIME__ "," __DATE__));
   Serial.println(F("Time" SEPARATOR "Rotation_Number" SEPARATOR "Rotation_Time" SEPARATOR "RPM"));
+
+  // Enable the switch
+  attachInterrupt(REED_SWITCH, reedInterrupt, FALLING);
 }
 
 void loop() {
@@ -73,8 +74,8 @@ void loop() {
  */
 void reedInterrupt() {
   uint32_t now = micros();
-  if(digitalReadFast(REED_SWITCH) && lockoutTime >= MIN_TIME) {
-    // Switch opened and no event interrupts for the last little while
+  if(now - curTime >= MIN_TIME) {
+    // Switch closed and no event interrupts for the last little while
     // Assume this is a genuine wheel rotation and not switch bounce.
     digitalWrite(LED_EXTERNAL, rotations & 0x1); // Toggle the led (lsb of rotations toggles each time).
     rotations++;
@@ -82,7 +83,4 @@ void reedInterrupt() {
     curTime = now;
     rotationFlag = true;
   }
-  // Lockout for switch opened or switch closed (helps with debouncing at slow speeds)
-  lockoutTime = now;
 }
-
