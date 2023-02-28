@@ -52,3 +52,23 @@ Logs reed switch events to the serial port.
   - The revolutions per minute for the last rotation.
 - Data is sent and the LED toggled each time the magnet is brought near the switch.
 - All times are in microseconds (µs).
+
+### Saving to a file
+#### Using PuTTY (Windows, Mac and Linux)
+See [here](https://www.eye4software.com/hydromagic/documentation/articles-and-howtos/serial-port-logging/).
+
+#### Minicom (Linux and Mac)
+```
+minicom -D /dev/ttyACM0 -C "WheelSpeed_$(date +%H-%M-%S).csv"
+```
+Picocom and other tools will be similar.
+
+#### Arduino IDE (Windows, Mac and Linux)
+This is tedious, but is another option. Simply copy and paste from the serial terminal. In the versions we tested, only the area currently visible on screen can be copied at a time.
+
+### Graphing / analysis
+#### Python scripts
+[`graph.py`](wheel-rpm-logging/graph.py) is a python file that graphs the angular velocity and angular acceleration over time.
+
+#### Excel / spreadsheets
+The output format from the DAS is in a CSV format that most software should be able to import.

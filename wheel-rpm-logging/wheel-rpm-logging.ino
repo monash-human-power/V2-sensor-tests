@@ -10,13 +10,19 @@
 #define REED_SWITCH 2
 #define LED_EXTERNAL 13
 
-#define MIN_TIME 40000 // Minimum rotation time  (us) for debouncing purposes
+#define MIN_TIME 20000 // Minimum rotation time  (us) for debouncing purposes
 #define BAUD_RATE 115200
-#define RPM_CONVERSION_FACTOR 60*1000*1000 // 60 seconds in a minute, 1000 ms in a s, 1000 us in a ms
+#define RPM_CONVERSION_FACTOR 60 // 60 seconds in a minute
+#define AV_CONVERSION_FACTOR TWO_PI
+#define PRINT_DECIMALS 15
+
 volatile unsigned int rotationFlag = false;
 volatile uint32_t curTime = 0;
 volatile uint32_t prevTime = 0;
 volatile unsigned long rotations = 0;
+double prevAV = 0;
+
+#define RESET() SCB_AIRCR = 0x05FA0004 // https://forum.pjrc.com/threads/30567-Hardware-reset-on-Teensy-LC
 
 void setup() {
   // Hardware
@@ -34,7 +40,7 @@ void setup() {
     delay(100);
   }
   // Serial.println(F("MHP Wheel speed logging. Compiled" __TIME__ "," __DATE__));
-  Serial.println(F("Time" SEPARATOR "Rotation_Number" SEPARATOR "Rotation_Time" SEPARATOR "RPM"));
+  Serial.println("Time_us" SEPARATOR "Rotation_Number" SEPARATOR "Rotation_Time_us" SEPARATOR "Angular_V_rad_s" SEPARATOR "Angular_A_rad_s2" SEPARATOR "RPM");
 
   // Enable the switch
   attachInterrupt(REED_SWITCH, reedInterrupt, FALLING);
@@ -46,10 +52,15 @@ void loop() {
     // Disable interrupts whilst reading to avoid race conditions.
     noInterrupts();
     unsigned long rotationTime = curTime - prevTime;
-    unsigned int rpm = RPM_CONVERSION_FACTOR / rotationTime;
     unsigned long rotationsCopy = rotations; // To avoid race conditions
     unsigned long curTimeCopy = curTime;
     interrupts();
+
+    double rotationTimeSeconds = (double)rotationTime / 1e6;
+    double rpm = RPM_CONVERSION_FACTOR / rotationTimeSeconds;
+    double angularV = AV_CONVERSION_FACTOR / rotationTimeSeconds;
+    double angularA = (angularV - prevAV) / rotationTimeSeconds;
+    prevAV = angularV;
 
     Serial.print(curTimeCopy);
     Serial.write(SEPARATOR);
@@ -57,15 +68,20 @@ void loop() {
     Serial.write(SEPARATOR);
     Serial.print(rotationTime);
     Serial.write(SEPARATOR);
-    Serial.println(rpm);
+    Serial.print(angularV, PRINT_DECIMALS);
+    Serial.write(SEPARATOR);
+    Serial.print(angularA, PRINT_DECIMALS);
+    Serial.write(SEPARATOR);
+    Serial.println(rpm, PRINT_DECIMALS);
     rotationFlag = false;
   }
+
   if(Serial.available() && Serial.read() == 'r') {
     // Reset if 'r' is sent
-    Serial.println(F("'r' received, so resetting..."));
+    // Serial.println(F("'r' received, so resetting...")); // Don't pollute the new file with this message
     Serial.flush();
     delay(200);
-    SCB_AIRCR = 0x05FA0004; // https://forum.pjrc.com/threads/30567-Hardware-reset-on-Teensy-LC
+    RESET();
   }
 }
 
