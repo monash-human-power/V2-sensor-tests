@@ -33,8 +33,10 @@ class WheelLogger:
                 data = str(ser.readline().decode()).strip()
 
                 if (len(data)>0) and (data != "Time_us,Rotation_Number,Rotation_Time_us,Angular_V_rad_s,Angular_A_rad_s2,RPM"):
-
-                    print(data.split(","))
+                    
+                    format_data = list(map(float, data.split(",")))
+                    print(format_data)
+                    ser_data.append(format_data)
 
         
         except KeyboardInterrupt as e:
@@ -42,6 +44,10 @@ class WheelLogger:
 
         print("we're stopping")
         ser.close()
+        df = pd.DataFrame(ser_data, columns=['Time_us' ,' Rotation_Number', 'Rotation_Time_us', 'Angular_V_rad_s', 'Angular_A_rad_s2', 'RPM'])
+        df.to_excel('test.xlsx', sheet_name='new_sheet_name', index=False)
+    
+
 
     
 
