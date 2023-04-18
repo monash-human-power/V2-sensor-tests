@@ -1,5 +1,0 @@
-The data read is in this format:
-    b'104890189,32,438701,14.322250193241288,-0.713440815178031,136.767411061292307\r\n'
-
-Everytime the wheel rig restarts this message is displayed:
-    b'Time_us,Rotation_Number,Rotation_Time_us,Angular_V_rad_s,Angular_A_rad_s2,RPM\r\n'
