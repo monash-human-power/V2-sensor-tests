@@ -37,7 +37,22 @@ class WindLogger:
                 
                 #Convert data from byte to string
                 data = self.sensor.readline().decode('utf-8')
+
+                # extract wind direction (deg) data
+                min_direction = float(data[7:10])
+                avg_direction = float(data[15:18])
+                max_direction = float(data[23:26])
+
+                # extract wind speed (m/s) data
+                min_speed = float(data[31:34])
+                avg_speed = float(data[39:42])
+                max_speed = float(data[47:50])
+
+                # extract temp (C)
+                temp = float(data[55:59])
+
                 print(data)
+                print(temp)
 
         #Keyboard interrupt
         except KeyboardInterrupt as e:
@@ -45,7 +60,9 @@ class WindLogger:
             
         #Once we hit CTRL+C we do the rest of the conversion to excel
         finally:
-            pass
+            
+            #Tell user that logging is done
+            print("\nCTRL+C PRESSED \nWE ARE DONE WITH LOGGING")
 
 
 
