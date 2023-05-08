@@ -17,9 +17,17 @@ class WindLogger:
         self.sensor = None
         self.port = port
         self.fname = "WindData"
+
+        self.col = ["Min Dir (Deg)", "Avg Dir (Deg)", "Max Dir (Deg)", "Min Speed (m/s)", "Avg Speed (m/s)", "Max Speed (m/s)", "Temp (C)"] 
         
 
-    def run(self):
+    def run(self, units=1, rolling_max=10):
+        """
+        Run the anemometer logger.
+
+        :param units: either 0 for m/s or 1 for km/h, defaults to 1.
+        :param rolling_max: gives the max within a given number of data points, defaults to 10.
+        """
         
         sensor_data = []
 
@@ -32,6 +40,15 @@ class WindLogger:
         #Start out logging
         print("STARTING LOGGING \nPRESS CTRL+C TO STOP\n\n")
 
+        start_max = 0
+        roll_max = 0
+        factor = 1
+        unit_text = "M/S"
+
+        if (units == 1):
+            factor = 3.6
+            unit_text = "KM/H"
+
         try:
             while True:
                 
@@ -39,9 +56,9 @@ class WindLogger:
                 data = self.sensor.readline().decode('utf-8')
 
                 # extract wind direction (deg) data
-                min_direction = float(data[7:10])
-                avg_direction = float(data[15:18])
-                max_direction = float(data[23:26])
+                min_dir = float(data[7:10])
+                avg_dir = float(data[15:18])
+                max_dir = float(data[23:26])
 
                 # extract wind speed (m/s) data
                 min_speed = float(data[31:34])
@@ -50,9 +67,18 @@ class WindLogger:
 
                 # extract temp (C)
                 temp = float(data[55:59])
+                
+                #Overall Max Speed
+                if max(avg_speed, max_speed) > start_max:
+                    start_max = max(avg_speed, max_speed)
 
-                print(data)
-                print(temp)
+                #Nice print to the console
+                print(f"Speed Units: {unit_text}")
+                print(f"Current Avg: {round(avg_speed*factor, 2)} \nOverall Max: {round(start_max*factor, 2)} \nRolling Max: {round(roll_max*factor, 2)}\n")
+                
+                # append new data to our sensor data
+                all_data = [min_dir, avg_dir, max_dir, min_speed, avg_speed, max_speed, temp]
+                sensor_data.append(all_data)
 
         #Keyboard interrupt
         except KeyboardInterrupt as e:
@@ -60,6 +86,8 @@ class WindLogger:
             
         #Once we hit CTRL+C we do the rest of the conversion to excel
         finally:
+
+            self.sensor.close()
             
             #Tell user that logging is done
             print("\nCTRL+C PRESSED \nWE ARE DONE WITH LOGGING")
