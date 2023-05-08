@@ -29,8 +29,6 @@ class WindLogger:
         :param rolling_max: gives the max within a given number of data points, defaults to 10.
         """
         
-        sensor_data = []
-
         #Try to set up our serial reader
         try:
             self.sensor = serial.Serial(self.port, self.brate)
@@ -44,6 +42,7 @@ class WindLogger:
         roll_max = 0
         factor = 1
         unit_text = "M/S"
+        sensor_data = []
 
         if (units == 1):
             factor = 3.6
@@ -71,6 +70,11 @@ class WindLogger:
                 #Overall Max Speed
                 if max(avg_speed, max_speed) > start_max:
                     start_max = max(avg_speed, max_speed)
+
+                #Rolling Max
+                if len(sensor_data) >= rolling_max:
+                    roll_data = sensor_data[-rolling_max:]
+                    roll_max = max([max(d[4], d[5]) for d in roll_data])
 
                 #Nice print to the console
                 print(f"Speed Units: {unit_text}")
