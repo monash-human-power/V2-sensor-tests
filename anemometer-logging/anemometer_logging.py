@@ -1,4 +1,3 @@
-from typing import Any
 import serial 
 from datetime import datetime
 import pandas as pd
@@ -9,7 +8,7 @@ class WindLogger:
     Class to log anemometer code to the terminal.
     """
 
-    def __init__(self, port) -> None:
+    def __init__(self, port):
         """
         Initialise to read data from anemometer and display in console.
         :param port: Serial port the anemometer is connected to.
@@ -19,16 +18,15 @@ class WindLogger:
         self.sensor = None
         self.port = port
         self.fname = "WindData_" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".xlsx"
-
         self.col = ["Time", "Min Dir (Deg)", "Avg Dir (Deg)", "Max Dir (Deg)", "Min Speed (m/s)", "Avg Speed (m/s)", "Max Speed (m/s)", "Temp (C)"] 
         
 
-    def run(self, units=1, rolling_max=10, log_freq=5):
+    def run(self, units=1, rolling_max=5, log_freq=5):
         """
         Run the anemometer logger.
 
         :param units: either 0 for m/s or 1 for km/h, defaults to 1.
-        :param rolling_max: gives the max within a given number of data points, defaults to 10.
+        :param rolling_max: gives the max within a given number of data points, defaults to 5.
         :param log_freq: how frequently we log to the excel file, defaults to every 5 logs.
         """
         
@@ -114,6 +112,6 @@ class WindLogger:
 
 if __name__=="__main__":
     
-    PORT = "COM7"
+    PORT = "SOME_PORT"
     WIND_LOGGER = WindLogger(PORT)
     WIND_LOGGER.run()
