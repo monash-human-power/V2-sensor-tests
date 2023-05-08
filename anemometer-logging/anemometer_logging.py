@@ -1,5 +1,7 @@
 from typing import Any
 import serial 
+from datetime import datetime
+import pandas as pd
 import time
 
 class WindLogger:
@@ -16,17 +18,18 @@ class WindLogger:
         self.brate = 19200
         self.sensor = None
         self.port = port
-        self.fname = "WindData"
+        self.fname = "WindData_" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".xlsx"
 
-        self.col = ["Min Dir (Deg)", "Avg Dir (Deg)", "Max Dir (Deg)", "Min Speed (m/s)", "Avg Speed (m/s)", "Max Speed (m/s)", "Temp (C)"] 
+        self.col = ["Time", "Min Dir (Deg)", "Avg Dir (Deg)", "Max Dir (Deg)", "Min Speed (m/s)", "Avg Speed (m/s)", "Max Speed (m/s)", "Temp (C)"] 
         
 
-    def run(self, units=1, rolling_max=10):
+    def run(self, units=1, rolling_max=10, log_freq=5):
         """
         Run the anemometer logger.
 
         :param units: either 0 for m/s or 1 for km/h, defaults to 1.
         :param rolling_max: gives the max within a given number of data points, defaults to 10.
+        :param log_freq: how frequently we log to the excel file, defaults to every 5 logs.
         """
         
         #Try to set up our serial reader
@@ -74,15 +77,21 @@ class WindLogger:
                 #Rolling Max
                 if len(sensor_data) >= rolling_max:
                     roll_data = sensor_data[-rolling_max:]
-                    roll_max = max([max(d[4], d[5]) for d in roll_data])
+                    roll_max = max([max(d[5], d[6]) for d in roll_data])
 
                 #Nice print to the console
                 print(f"Speed Units: {unit_text}")
                 print(f"Current Avg: {round(avg_speed*factor, 2)} \nOverall Max: {round(start_max*factor, 2)} \nRolling Max: {round(roll_max*factor, 2)}\n")
                 
                 # append new data to our sensor data
-                all_data = [min_dir, avg_dir, max_dir, min_speed, avg_speed, max_speed, temp]
+                all_data = [time.time(), min_dir, avg_dir, max_dir, min_speed, avg_speed, max_speed, temp]
                 sensor_data.append(all_data)
+
+                #every 5 sensor entries we write to excel spreadsheet
+                if len(sensor_data) % log_freq == 0:
+                    #write to excel file
+                    df = pd.DataFrame(sensor_data, columns=self.col)
+                    df.to_excel(self.fname, sheet_name="wind_data_sheet", index=False)
 
         #Keyboard interrupt
         except KeyboardInterrupt as e:
@@ -92,6 +101,10 @@ class WindLogger:
         finally:
 
             self.sensor.close()
+
+            #write to excel file
+            df = pd.DataFrame(sensor_data, columns=self.col)
+            df.to_excel(self.fname, sheet_name="wind_data_sheet", index=False)
             
             #Tell user that logging is done
             print("\nCTRL+C PRESSED \nWE ARE DONE WITH LOGGING")
