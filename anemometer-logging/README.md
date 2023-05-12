@@ -9,7 +9,8 @@ An introduction on how to log anemometer data.
 2. The following commands must be run on your terminal to install the necessary libraries.
 ```
 pip install pandas
-pip install serial
+pip install pyserial
+pip install openpyxl
 ```
 
 3. The serial port the device connects to will be different for different devices, check which port it is connected to and change the line in the file, as show below.
