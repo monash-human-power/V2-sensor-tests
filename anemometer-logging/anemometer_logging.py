@@ -1,25 +1,30 @@
-import serial 
+import serial
 from datetime import datetime
 import pandas as pd
 import time
+
 
 class WindLogger:
     """
     Class to log anemometer code to the terminal.
     """
 
-    def __init__(self, port):
+    def __init__(self, port, log_to_csv: bool = False):
         """
         Initialise to read data from anemometer and display in console.
         :param port: Serial port the anemometer is connected to.
+        :param log_to_csv: Whether to save files using the csv format. If
+                           false, will save excell spreadsheets instead.
         """
 
         self.brate = 19200
         self.sensor = None
         self.port = port
-        self.fname = "WindData_" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".xlsx"
-        self.col = ["Time", "Min Dir (Deg)", "Avg Dir (Deg)", "Max Dir (Deg)", "Min Speed (m/s)", "Avg Speed (m/s)", "Max Speed (m/s)", "Temp (C)"] 
-        
+        self.log_to_csv = log_to_csv
+        self.fname = "WindData_" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + \
+            (".csv" if self.log_to_csv else ".xlsx")
+        self.col = ["Time", "Min Dir (Deg)", "Avg Dir (Deg)", "Max Dir (Deg)",
+                    "Min Speed (m/s)", "Avg Speed (m/s)", "Max Speed (m/s)", "Temp (C)"]
 
     def run(self, units=1, rolling_max=5, log_freq=5):
         """
@@ -29,14 +34,15 @@ class WindLogger:
         :param rolling_max: gives the max within a given number of data points, defaults to 5.
         :param log_freq: how frequently we log to the excel file, defaults to every 5 logs.
         """
-        
-        #Try to set up our serial reader
+
+        # Try to set up our serial reader
         try:
             self.sensor = serial.Serial(self.port, self.brate)
         except Exception as e:
             print("{}".format(e))
+            return
 
-        #Start out logging
+        # Start out logging
         print("STARTING LOGGING \nPRESS CTRL+C TO STOP\n\n")
 
         start_max = 0
@@ -51,8 +57,8 @@ class WindLogger:
 
         try:
             while True:
-                
-                #Convert data from byte to string
+
+                # Convert data from byte to string
                 data = self.sensor.readline().decode('utf-8')
 
                 # extract wind direction (deg) data
@@ -67,51 +73,61 @@ class WindLogger:
 
                 # extract temp (C)
                 temp = float(data[55:59])
-                
-                #Overall Max Speed
+
+                # Overall Max Speed
                 if max(avg_speed, max_speed) > start_max:
                     start_max = max(avg_speed, max_speed)
 
-                #Rolling Max
+                # Rolling Max
                 if len(sensor_data) >= rolling_max:
                     roll_data = sensor_data[-rolling_max:]
                     roll_max = max([max(d[5], d[6]) for d in roll_data])
 
-                #Nice print to the console
+                # Nice print to the console
                 print(f"Speed Units: {unit_text}")
-                print(f"Current Avg: {round(avg_speed*factor, 2)} \nOverall Max: {round(start_max*factor, 2)} \nRolling Max: {round(roll_max*factor, 2)}\n")
-                
+                print(
+                    f"Current Avg: {round(avg_speed*factor, 2)} \nOverall Max: {round(start_max*factor, 2)} \nRolling Max: {round(roll_max*factor, 2)}\n")
+
                 # append new data to our sensor data
-                all_data = [time.time(), min_dir, avg_dir, max_dir, min_speed, avg_speed, max_speed, temp]
+                all_data = [time.time(), min_dir, avg_dir, max_dir,
+                            min_speed, avg_speed, max_speed, temp]
                 sensor_data.append(all_data)
 
-                #every 5 sensor entries we write to excel spreadsheet
+                # every 5 sensor entries we write to excel spreadsheet
                 if len(sensor_data) % log_freq == 0:
-                    #write to excel file
-                    df = pd.DataFrame(sensor_data, columns=self.col)
-                    df.to_excel(self.fname, sheet_name="wind_data_sheet", index=False)
+                    # write to excel file
+                    self.save_file(sensor_data)
 
-        #Keyboard interrupt
+        # Keyboard interrupt
         except KeyboardInterrupt as e:
             print("{}".format(e))
-            
-        #Once we hit CTRL+C we do the rest of the conversion to excel
+
+        # Once we hit CTRL+C we do the rest of the conversion to excel
         finally:
 
             self.sensor.close()
 
-            #write to excel file
-            df = pd.DataFrame(sensor_data, columns=self.col)
-            df.to_excel(self.fname, sheet_name="wind_data_sheet", index=False)
-            
-            #Tell user that logging is done
+            # write to excel file
+            self.save_file(sensor_data)
+
+            # Tell user that logging is done
             print("\nCTRL+C PRESSED \nWE ARE DONE WITH LOGGING")
 
+    def save_file(self, sensor_data):
+        """Saves the data to a csv or excel file
+
+        :param sensor_data: is the data to save.
+        """
+        df = pd.DataFrame(sensor_data, columns=self.col)
+        if self.log_to_csv:
+            df.to_csv(self.fname, index=False)
+        else:
+            df.to_excel(self.fname, sheet_name="wind_data_sheet", index=False)
 
 
+if __name__ == "__main__":
 
-if __name__=="__main__":
-    
     PORT = "SOME_PORT"
-    WIND_LOGGER = WindLogger(PORT)
+    LOG_TO_CSV = False
+    WIND_LOGGER = WindLogger(PORT, LOG_TO_CSV)
     WIND_LOGGER.run()
